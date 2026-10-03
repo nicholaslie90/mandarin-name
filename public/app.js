@@ -15,7 +15,7 @@ function h(tag, attrs = {}, ...kids) {
   return el;
 }
 
-const han = s => [...s].filter(c => /\p{Script=Han}/u.test(c));
+const han = s => [...s].filter(c => /\p{Script=Han}/u.test(c)).slice(0, 2); // length capped here, not via maxlength: it truncates pinyin IME composition on Android
 
 // Typed chars (either script) -> [{ simp, trad, py }]; keeps the user's own traditional form.
 function parse(chars, surnameLen = 0) {
