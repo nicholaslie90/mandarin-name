@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Name Lineage</title>
+<meta name="description" content="Suggest a child's Chinese name that continues the family's generational naming chain, in Simplified and Traditional characters.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Serif+TC:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23b42318'/><text x='50' y='72' font-size='64' text-anchor='middle' fill='white'>名</text></svg>">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Name Lineage <span lang="zh-Hant">字輩</span></h1>
+    <p class="lede">Many families link generations by sound or by character: a child's first given character echoes the parent's last one. Enter two generations to find the pattern, then get names for the next.</p>
+    <p class="legend">
+      <span class="tag simp" lang="zh-Hans">简</span> Simplified
+      <span class="tag trad" lang="zh-Hant">繁</span> Traditional
+      <span class="diff-sample">underlined</span> = the character is written differently in the two scripts
+    </p>
+  </header>
+
+  <form id="form" autocomplete="off">
+    <label>Surname <input name="surname" placeholder="e.g. 李" maxlength="2" required></label>
+    <label>Grandparent's given name <small>(optional)</small><input name="father" placeholder="e.g. 建國" maxlength="2"></label>
+    <label>Parent's given name<input name="you" placeholder="e.g. 志明" maxlength="2" required></label>
+    <label id="readingWrap" hidden>Reading of <span id="readingChar"></span><select name="reading"></select></label>
+  </form>
+
+  <section id="lineage" aria-live="polite"></section>
+
+  <section id="controls" hidden>
+    <fieldset>
+      <legend>Linking rule</legend>
+      <label><input type="radio" name="mode" value="sound" checked> Same sound <span lang="zh-Hant">諧音頂真</span></label>
+      <label><input type="radio" name="mode" value="char"> Same character <span lang="zh-Hant">頂真</span></label>
+    </fieldset>
+    <div>
+      <p class="label">First character (click to filter)</p>
+      <div id="firsts" class="chips"></div>
+    </div>
+    <div class="row-ctl">
+      <label class="grow">Second character: search meaning or pinyin <input id="q" placeholder="e.g. peace, bright, an"></label>
+      <button type="button" id="shuffle">Shuffle</button>
+    </div>
+  </section>
+
+  <section id="results"></section>
+  <button type="button" id="more" hidden>Show more</button>
+
+  <footer>Uses common name characters only. Names are scored on how the tones sound together, not on meaning or tradition, so check with family elders before choosing. Nothing you type leaves your browser.</footer>
+</main>
+<script src="vendor/pinyin-pro.js"></script>
+<script src="vendor/opencc.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

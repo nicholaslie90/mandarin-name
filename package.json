@@ -1,0 +1,19 @@
+{
+  "name": "mandarin-name",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.mjs",
+    "deploy": "wrangler pages deploy public --project-name=mandarin-name --branch=main"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "opencc-js": "^1.4.2",
+    "pinyin-pro": "^3.29.4",
+    "wrangler": "^4.147.0"
+  }
+}
