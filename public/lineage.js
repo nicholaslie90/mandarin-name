@@ -48,6 +48,18 @@ export function firstChoices(link, mode, soundsOf = SOUNDS.mandarin, sound = sou
   return [l, ...same].sort((a, b) => (a.tone !== l.tone) - (b.tone !== l.tone));
 }
 
+// Generation poem (字輩): locate the parent's generation char; the child's is the next one.
+// Checks both given-name positions; prefers a match the grandparent's name confirms.
+export function poemNext(poem, parent, grandparent = []) {
+  const hits = [];
+  for (const pos of [0, 1])
+    poem.forEach((c, i) => {
+      if (c === parent[pos] && i + 1 < poem.length)
+        hits.push({ pos, index: i, next: poem[i + 1], confirmed: i > 0 && poem[i - 1] === grandparent[pos] });
+    });
+  return hits.find(x => x.confirmed) ?? hits[0] ?? null;
+}
+
 // 0–3: how smoothly the full name reads aloud.
 export function flow(chars) {
   const t = chars.map(c => c.tone), last = t.length - 1;
@@ -63,13 +75,14 @@ const matches = (c, q) =>
   !q || c.meaning.toLowerCase().includes(q) || c.base.startsWith(q) || c.simp === q || c.trad === q;
 
 // surname: char[]; firsts: char[]; avoid: Set of simplified chars used by ancestors (避諱).
-export function suggest({ surname, firsts, avoid = new Set(), query = '', rand = Math.random }) {
+// genPos 1 puts the linked char second (some families put the generation char last).
+export function suggest({ surname, firsts, avoid = new Set(), query = '', rand = Math.random, genPos = 0 }) {
   const q = query.trim().toLowerCase();
   const sur = surname.map(withTone);
   const seconds = DB.filter(c => !avoid.has(c.simp) && !firsts.some(f => f.base === c.base) && matches(c, q));
   const out = [];
   for (const f of firsts) for (const s of seconds) {
-    const chars = [...sur, f, s];
+    const chars = genPos ? [...sur, s, f] : [...sur, f, s];
     out.push({ chars, score: flow(chars), r: rand() });
   }
   return out.sort((a, b) => b.score - a.score || a.r - b.r);

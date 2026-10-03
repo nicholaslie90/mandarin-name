@@ -1,5 +1,5 @@
 import { PENDING, gb2312, buildIndex, firstSyllable, candidates, SURNAMES } from './pinyin.js';
-import { DB, BY_SIMP, withTone, detectLink, firstChoices, suggest, romanize, SOUNDS, hokkien, taiBase, indo, romanizeHokkien } from './lineage.js';
+import { DB, BY_SIMP, withTone, detectLink, firstChoices, suggest, romanize, SOUNDS, hokkien, taiBase, indo, romanizeHokkien, poemNext } from './lineage.js';
 
 const { pinyin } = window.pinyinPro;
 const toSimp = OpenCC.Converter({ from: 'tw', to: 'cn' });
@@ -16,7 +16,7 @@ function h(tag, attrs = {}, ...kids) {
   return el;
 }
 
-const han = s => [...s].filter(c => /\p{Script=Han}/u.test(c)).slice(0, 2); // length capped here, not via maxlength: it truncates pinyin IME composition on Android
+const han = (s, n = 2) => [...s].filter(c => /\p{Script=Han}/u.test(c)).slice(0, n); // length capped here, not via maxlength: it truncates pinyin IME composition on Android
 
 // Typed chars (either script) -> [{ simp, trad, py }]; keeps the user's own traditional form.
 function parse(chars, surnameLen = 0) {
@@ -59,19 +59,27 @@ function read() {
   const surname = parse(han(f.get('surname')), 1);
   const father = parse(han(f.get('father')));
   const you = parse(han(f.get('you')));
-  return { surname, father, you };
+  const poem = parse(han(f.get('poem'), Infinity));
+  return { surname, father, you, poem };
 }
 
 function update({ redetect = true } = {}) {
-  const { surname, father, you } = read();
+  const { surname, father, you, poem } = read();
   const lineage = $('#lineage');
   lineage.replaceChildren();
   $('#controls').hidden = $('#more').hidden = true;
   $('#results').replaceChildren();
   if (!surname.length || !you.length) return lineage.append(h('p', { class: 'empty' }, 'Enter a surname and the parent\'s given name to see suggestions.'));
 
-  // Reading picker for the linking char when it has several readings (e.g. 乐 lè / yuè).
   const hk = dialect() === 'hokkien';
+  const gen = poemNext(poem.map(c => c.simp), you.map(c => c.simp), father.map(c => c.simp));
+  const chain = detectLink(father.at(-1), you[0], SOUNDS[dialect()]);
+  const found = gen ? 'poem' : chain;
+  if (redetect && found) document.querySelector(`input[name=mode][value=${found}]`).checked = true;
+  const mode = $('input[name=mode]:checked').value;
+  const genChar = mode === 'poem' && gen ? poem[gen.index + 1] : null;
+
+  // Reading picker for the linking char when it has several readings (e.g. 乐 lè / yuè).
   const link = you.at(-1);
   const readings = hk ? hokkien(link) : pinyin(link.simp, { multiple: true, type: 'array' });
   const sel = form.reading;
@@ -79,51 +87,57 @@ function update({ redetect = true } = {}) {
     sel.replaceChildren(...readings.map(r => h('option', { value: r }, r)));
     sel.value = hk ? readings[0] ?? '' : link.py;
   }
-  $('#readingWrap').hidden = readings.length < 2;
+  $('#readingWrap').hidden = readings.length < 2 || mode === 'poem';
   $('#readingChar').textContent = `${link.trad}`;
   if (hk) link.hk = sel.value || readings[0] || '';
   else link.py = sel.value || link.py;
   const say = c => (hk ? hkOf(c) : c.py);
 
-  const found = detectLink(father.at(-1), you[0], SOUNDS[dialect()]);
-  if (redetect && found) document.querySelector(`input[name=mode][value=${found}]`).checked = true;
-  const mode = $('input[name=mode]:checked').value;
-
   const gens = [];
   if (father.length) gens.push(nameCard([...surname, ...father], surname.length, { caption: 'Grandparent' }));
   gens.push(nameCard([...surname, ...you], surname.length, { caption: 'Parent' }));
-  const note = !father.length ? 'Add the grandparent\'s name to detect the family\'s rule.'
-    : found === 'sound' ? `Same ${hk ? 'Hokkien ' : ''}sound: ${father.at(-1).trad} ${say(father.at(-1))} → ${you[0].trad} ${say(you[0])}`
-    : found === 'char' ? `Same character: ${father.at(-1).trad} → ${you[0].trad}`
+  const note = mode === 'poem'
+    ? !poem.length ? 'Enter your family\'s generation poem above to use this rule.'
+      : genChar ? `Generation poem: ${gen.confirmed ? father[gen.pos].trad + ' → ' : ''}${you[gen.pos].trad} → ${genChar.trad} (character ${gen.index + 2} of ${poem.length})`
+      : `Couldn't find ${you.map(c => c.trad).join(' or ')} in the poem, or it's the poem's last character.`
+    : !father.length ? 'Add the grandparent\'s name to detect the family\'s rule.'
+    : chain === 'sound' ? `Same ${hk ? 'Hokkien ' : ''}sound: ${father.at(-1).trad} ${say(father.at(-1))} → ${you[0].trad} ${say(you[0])}`
+    : chain === 'char' ? `Same character: ${father.at(-1).trad} → ${you[0].trad}`
     : 'No chain found between these two names. Pick a rule below to start one.';
   const next = mode === 'char' ? link.trad : say(link) || '?';
-  lineage.append(h('div', { class: 'gens' }, gens, h('article', { class: 'card child' },
-    h('p', { class: 'cap' }, 'Child'), h('p', { class: 'next' }, `${surname.map(c => c.trad).join('')} + `, h('strong', {}, mode === 'char' ? next : `"${next}"`), ' + ?'))),
-    h('p', { class: found ? 'note ok' : 'note' }, note),
-    hk && !readings.length ? h('p', { class: 'note' }, `No Hokkien reading on file for ${link.trad}. Try Mandarin, or the same-character rule.`) : null);
+  const child = mode === 'poem'
+    ? genChar ? (gen.pos ? ['? + ', h('strong', {}, genChar.trad)] : [h('strong', {}, genChar.trad), ' + ?']) : ['?']
+    : [h('strong', {}, mode === 'char' ? next : `"${next}"`), ' + ?'];
+  lineage.append(...[h('div', { class: 'gens' }, gens, h('article', { class: 'card child' },
+    h('p', { class: 'cap' }, 'Child'), h('p', { class: 'next' }, `${surname.map(c => c.trad).join('')} + `, child))),
+    h('p', { class: (mode === 'poem' ? genChar : chain) ? 'note ok' : 'note' }, note),
+    genChar ? h('p', { class: 'poem', lang: 'zh-Hant' }, poem.map((c, i) =>
+      h('span', { class: i < gen.index ? 'past' : i === gen.index ? 'cur' : i === gen.index + 1 ? 'nxt' : '' }, c.trad))) : null,
+    hk && !readings.length && mode !== 'poem' ? h('p', { class: 'note' }, `No Hokkien reading on file for ${link.trad}. Try Mandarin, or the same-character rule.`) : null].filter(Boolean));
 
   // In Hokkien mode, each candidate carries the reading that matches the link's sound.
   const sound = hk ? taiBase(link.hk) : undefined;
-  const firsts = firstChoices(link, mode, SOUNDS[dialect()], sound)
-    .map(c => (hk ? { ...c, hk: hokkien(c).find(r => taiBase(r) === sound) ?? hkOf(c) } : c));
+  const firsts = mode === 'poem' ? (genChar ? [withTone(genChar)] : [])
+    : firstChoices(link, mode, SOUNDS[dialect()], sound)
+      .map(c => (hk ? { ...c, hk: hokkien(c).find(r => taiBase(r) === sound) ?? hkOf(c) } : c));
   for (const s of state.picked) if (!firsts.some(f => f.simp === s)) state.picked.delete(s);
   $('#firsts').replaceChildren(...firsts.map(c => {
     const b = h('button', { type: 'button', class: 'chip', 'aria-pressed': String(state.picked.has(c.simp)) },
       h('span', { lang: 'zh-Hans', class: 'simp' }, c.simp), c.simp !== c.trad ? h('span', { lang: 'zh-Hant', class: 'trad' }, c.trad) : null,
-      h('small', {}, ` ${hk ? `${c.hk} (${indo(c.hk)})` : c.py}${c.meaning ? ' · ' + c.meaning : ''}`));
+      h('small', {}, ` ${hk ? `${hkOf(c)} (${indo(hkOf(c))})` : c.py}${c.meaning ? ' · ' + c.meaning : ''}`));
     b.onclick = () => { state.picked.has(c.simp) ? state.picked.delete(c.simp) : state.picked.add(c.simp); update({ redetect: false }); };
     return b;
   }));
   $('#controls').hidden = false;
 
-  // Avoid reusing ancestors' characters (避諱), except the linking char itself in character mode.
-  const avoid = new Set([...father, ...you].map(c => c.simp));
+  // Avoid reusing ancestors' characters (避諱) and, in poem mode, other generations' characters.
+  const avoid = new Set([...father, ...you, ...(mode === 'poem' ? poem : [])].map(c => c.simp));
   let s = state.seed;
   const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   state.results = suggest({
     surname,
     firsts: state.picked.size ? firsts.filter(f => state.picked.has(f.simp)) : firsts,
-    avoid, query: $('#q').value, rand,
+    avoid, query: $('#q').value, rand, genPos: genChar ? gen.pos : 0,
   });
   render(surname.length);
 }
@@ -163,11 +177,12 @@ function picker() {
       return b;
     })));
 }
-form.addEventListener('focusin', e => { if (e.target.matches('.f input')) { active = e.target; picker(); } });
+form.addEventListener('focusin', e => { if (e.target.matches('.f input, .f textarea')) { active = e.target; picker(); } });
 
 form.addEventListener('input', e => {
   if (e.target.name === 'reading') return update({ redetect: false });
-  if (e.target.matches('.f input')) { active = e.target; picker(); }
+  if (e.target.name === 'poem') try { localStorage.setItem('poem', e.target.value); } catch {}
+  if (e.target.matches('.f input, .f textarea')) { active = e.target; picker(); }
   state.shown = PAGE; state.picked.clear(); update();
 });
 form.addEventListener('submit', e => e.preventDefault());
@@ -175,4 +190,6 @@ $('#controls').addEventListener('change', e => { if (e.target.name === 'mode') {
 $('#q').addEventListener('input', () => { state.shown = PAGE; update({ redetect: false }); });
 $('#shuffle').onclick = () => { state.seed = (Math.random() * 2147483646 + 1) | 0; update({ redetect: false }); };
 $('#more').onclick = () => { state.shown += PAGE; render(read().surname.length); };
+// The poem stays in this browser only; it is never part of the published page.
+try { form.poem.value = localStorage.getItem('poem') ?? ''; } catch {}
 update();

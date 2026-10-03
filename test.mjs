@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { pinyin } from 'pinyin-pro';
 import * as OpenCC from 'opencc-js';
 import { gb2312, buildIndex, syllables, firstSyllable, candidates, SURNAMES } from './public/pinyin.js';
-import { DB, splitTone, detectLink, firstChoices, flow, suggest, romanize, SOUNDS, hokkien, indo, romanizeHokkien } from './public/lineage.js';
+import { DB, splitTone, detectLink, firstChoices, flow, suggest, romanize, SOUNDS, hokkien, indo, romanizeHokkien, poemNext } from './public/lineage.js';
 
 // Data integrity: unique, traditional form and reading agree with the libraries.
 const toTrad = OpenCC.Converter({ from: 'cn', to: 'tw' });
@@ -64,5 +64,16 @@ const sik = firstChoices(shuo, 'sound', hk, 'sik').map(c => c.trad);
 assert.ok(['碩', '識', '錫', '惜', '息'].every(c => sik.includes(c)) && !sik.includes('朔'));
 assert.deepEqual(['tsiā', 'lí', 'si̍k', 'uî', 'ka', 'sih', 'un', 'tshing', 'jī'].map(indo), ['Tjia', 'Lie', 'Sik', 'Oei', 'Ka', 'Sie', 'Oen', 'Tjing', 'Djie']);
 assert.deepEqual(romanizeHokkien(['lí', 'uî', 'si̍k'], 1), { tailo: 'Lí Uî-si̍k', indo: 'Lie Oei Sik' });
+
+// Generation poem: 家 → 惟 → 善
+const poem = [...'文章華國詩禮傳家惟善為寶以德則和箕裘衍紹孫子福遐'];
+assert.equal(poem.length, 24);
+assert.deepEqual(poemNext(poem, [...'惟碩'], [...'家緯']), { pos: 0, index: 8, next: '善', confirmed: true });
+assert.equal(poemNext(poem, [...'惟碩']).next, '善'); // works without the grandparent
+assert.deepEqual(poemNext(poem, [...'明善'], [...'光惟']), { pos: 1, index: 9, next: '為', confirmed: true });
+assert.equal(poemNext(poem, [...'遐明']), null); // last generation
+assert.equal(poemNext(poem, [...'明亮']), null);
+const gp = suggest({ surname: [{ simp: '李', trad: '李', py: 'lǐ' }], firsts: [{ simp: '善', trad: '善', py: 'shàn' }], genPos: 1, rand: () => 0 });
+assert.ok(gp.every(r => r.chars[2].simp === '善'));
 
 console.log(`ok — ${DB.length} characters`);

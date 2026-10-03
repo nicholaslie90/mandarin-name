@@ -15,7 +15,7 @@
 <main>
   <header>
     <h1>Name Lineage <span lang="zh-Hant">字輩</span></h1>
-    <p class="lede">Many families link generations by sound or by character: a child's first given character echoes the parent's last one. Enter two generations to find the pattern, then get names for the next.</p>
+    <p class="lede">Families pass names down through a generation poem (字輩), where each generation takes the next character, or by echoing the parent's last given character. Enter two generations to find your family's pattern, then get names for the next.</p>
     <ul class="legend">
       <li><span class="tag simp" lang="zh-Hans">简</span> Simplified</li>
       <li><span class="tag trad" lang="zh-Hant">繁</span> Traditional</li>
@@ -27,6 +27,7 @@
     <label class="f"><span>Surname</span><input name="surname" placeholder="李" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
     <label class="f"><span>Grandparent</span><input name="father" placeholder="建國" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
     <label class="f"><span>Parent</span><input name="you" placeholder="志明" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
+    <label class="f wide"><span>Generation poem <span lang="zh-Hant">字輩</span> <small>optional · saved only in this browser</small></span><textarea name="poem" rows="2" placeholder="Paste or type the poem in order. Spaces and punctuation are ignored." lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></label>
     <fieldset class="wide dialect">
       <legend>Match sounds in</legend>
       <label><input type="radio" name="dialect" value="mandarin" checked> Mandarin</label>
@@ -42,6 +43,7 @@
   <section id="controls" hidden>
     <fieldset>
       <legend>Linking rule</legend>
+      <label><input type="radio" name="mode" value="poem"> Generation poem <span lang="zh-Hant">字輩</span></label>
       <label><input type="radio" name="mode" value="sound" checked> Same sound <span lang="zh-Hant">諧音頂真</span></label>
       <label><input type="radio" name="mode" value="char"> Same character <span lang="zh-Hant">頂真</span></label>
     </fieldset>
