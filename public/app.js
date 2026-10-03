@@ -57,7 +57,7 @@ function update({ redetect = true } = {}) {
   lineage.replaceChildren();
   $('#controls').hidden = $('#more').hidden = true;
   $('#results').replaceChildren();
-  if (!surname.length || !you.length) return;
+  if (!surname.length || !you.length) return lineage.append(h('p', { class: 'empty' }, 'Enter a surname and the parent\'s given name to see suggestions.'));
 
   // Reading picker for the linking char when it has several readings (e.g. 乐 lè / yuè).
   const link = you.at(-1);
@@ -127,3 +127,4 @@ $('#controls').addEventListener('change', e => { if (e.target.name === 'mode') {
 $('#q').addEventListener('input', () => { state.shown = PAGE; update({ redetect: false }); });
 $('#shuffle').onclick = () => { state.seed = (Math.random() * 2147483646 + 1) | 0; update({ redetect: false }); };
 $('#more').onclick = () => { state.shown += PAGE; render(read().surname.length); };
+update();

@@ -16,18 +16,19 @@
   <header>
     <h1>Name Lineage <span lang="zh-Hant">字輩</span></h1>
     <p class="lede">Many families link generations by sound or by character: a child's first given character echoes the parent's last one. Enter two generations to find the pattern, then get names for the next.</p>
-    <p class="legend">
-      <span class="tag simp" lang="zh-Hans">简</span> Simplified
-      <span class="tag trad" lang="zh-Hant">繁</span> Traditional
-      <span class="diff-sample">underlined</span> = the character is written differently in the two scripts
-    </p>
+    <ul class="legend">
+      <li><span class="tag simp" lang="zh-Hans">简</span> Simplified</li>
+      <li><span class="tag trad" lang="zh-Hant">繁</span> Traditional</li>
+      <li><span class="diff-sample" lang="zh-Hant">碩</span> Underlined: written differently</li>
+    </ul>
   </header>
 
-  <form id="form" autocomplete="off">
-    <label>Surname <input name="surname" placeholder="e.g. 李" maxlength="2" required></label>
-    <label>Grandparent's given name <small>(optional)</small><input name="father" placeholder="e.g. 建國" maxlength="2"></label>
-    <label>Parent's given name<input name="you" placeholder="e.g. 志明" maxlength="2" required></label>
-    <label id="readingWrap" hidden>Reading of <span id="readingChar"></span><select name="reading"></select></label>
+  <form id="form" class="form" autocomplete="off">
+    <label class="f"><span>Surname</span><input name="surname" placeholder="李" maxlength="2" required></label>
+    <label class="f"><span>Grandparent</span><input name="father" placeholder="建國" maxlength="2"></label>
+    <label class="f"><span>Parent</span><input name="you" placeholder="志明" maxlength="2" required></label>
+    <p class="hint">Given names only; grandparent is optional. Simplified or Traditional both work.</p>
+    <label id="readingWrap" class="f wide" hidden><span>Reading of <span id="readingChar"></span></span><select name="reading"></select></label>
   </form>
 
   <section id="lineage" aria-live="polite"></section>
