@@ -1,5 +1,5 @@
 import { PENDING, gb2312, buildIndex, firstSyllable, candidates, SURNAMES } from './pinyin.js';
-import { DB, BY_SIMP, withTone, detectLink, firstChoices, suggest, romanize } from './lineage.js';
+import { DB, BY_SIMP, withTone, detectLink, firstChoices, suggest, romanize, SOUNDS, hokkien, taiBase, indo, romanizeHokkien } from './lineage.js';
 
 const { pinyin } = window.pinyinPro;
 const toSimp = OpenCC.Converter({ from: 'tw', to: 'cn' });
@@ -29,6 +29,9 @@ function parse(chars, surnameLen = 0) {
   }));
 }
 
+const dialect = () => new FormData(form).get('dialect');
+const hkOf = c => c.hk ?? hokkien(c)[0] ?? '';
+
 function nameCard(chars, surnameLen, { meaning = true, score, caption } = {}) {
   const row = (script, label, lang) =>
     h('div', { class: `row ${script}` }, h('span', { class: `tag ${script}`, lang }, label),
@@ -39,9 +42,16 @@ function nameCard(chars, surnameLen, { meaning = true, score, caption } = {}) {
     row('simp', '简', 'zh-Hans'),
     row('trad', '繁', 'zh-Hant'),
     h('p', { class: 'py' }, romanize(chars.map(c => c.py), surnameLen)),
+    dialect() === 'hokkien' && hokkienLine(chars, surnameLen),
     meaning && given.length ? h('p', { class: 'mean' }, given.map(c => `${c.simp} ${c.meaning}`).join(' · ')) : null,
     score != null && h('p', { class: 'flow', title: 'Tone flow: how smoothly the name reads aloud' },
       '●'.repeat(score) + '○'.repeat(3 - score), h('span', {}, ' tone flow')));
+}
+
+function hokkienLine(chars, surnameLen) {
+  const { tailo, indo } = romanizeHokkien(chars.map(hkOf), surnameLen);
+  return h('p', { class: 'hk' }, h('span', { title: 'Hokkien (Tâi-lô)' }, tailo), ' · ',
+    h('span', { class: 'indo', title: 'Approximate old Indonesian spelling' }, indo));
 }
 
 function read() {
@@ -61,18 +71,21 @@ function update({ redetect = true } = {}) {
   if (!surname.length || !you.length) return lineage.append(h('p', { class: 'empty' }, 'Enter a surname and the parent\'s given name to see suggestions.'));
 
   // Reading picker for the linking char when it has several readings (e.g. 乐 lè / yuè).
+  const hk = dialect() === 'hokkien';
   const link = you.at(-1);
-  const readings = pinyin(link.simp, { multiple: true, type: 'array' });
+  const readings = hk ? hokkien(link) : pinyin(link.simp, { multiple: true, type: 'array' });
   const sel = form.reading;
   if (redetect) {
     sel.replaceChildren(...readings.map(r => h('option', { value: r }, r)));
-    sel.value = link.py;
+    sel.value = hk ? readings[0] ?? '' : link.py;
   }
   $('#readingWrap').hidden = readings.length < 2;
-  $('#readingChar').textContent = `${link.simp}`;
-  link.py = sel.value || link.py;
+  $('#readingChar').textContent = `${link.trad}`;
+  if (hk) link.hk = sel.value || readings[0] || '';
+  else link.py = sel.value || link.py;
+  const say = c => (hk ? hkOf(c) : c.py);
 
-  const found = detectLink(father.at(-1), you[0]);
+  const found = detectLink(father.at(-1), you[0], SOUNDS[dialect()]);
   if (redetect && found) document.querySelector(`input[name=mode][value=${found}]`).checked = true;
   const mode = $('input[name=mode]:checked').value;
 
@@ -80,20 +93,24 @@ function update({ redetect = true } = {}) {
   if (father.length) gens.push(nameCard([...surname, ...father], surname.length, { caption: 'Grandparent' }));
   gens.push(nameCard([...surname, ...you], surname.length, { caption: 'Parent' }));
   const note = !father.length ? 'Add the grandparent\'s name to detect the family\'s rule.'
-    : found === 'sound' ? `Same sound: ${father.at(-1).trad} ${father.at(-1).py} → ${you[0].trad} ${you[0].py}`
+    : found === 'sound' ? `Same ${hk ? 'Hokkien ' : ''}sound: ${father.at(-1).trad} ${say(father.at(-1))} → ${you[0].trad} ${say(you[0])}`
     : found === 'char' ? `Same character: ${father.at(-1).trad} → ${you[0].trad}`
     : 'No chain found between these two names. Pick a rule below to start one.';
-  const next = mode === 'char' ? link.trad : link.py;
+  const next = mode === 'char' ? link.trad : say(link) || '?';
   lineage.append(h('div', { class: 'gens' }, gens, h('article', { class: 'card child' },
     h('p', { class: 'cap' }, 'Child'), h('p', { class: 'next' }, `${surname.map(c => c.trad).join('')} + `, h('strong', {}, mode === 'char' ? next : `"${next}"`), ' + ?'))),
-    h('p', { class: found ? 'note ok' : 'note' }, note));
+    h('p', { class: found ? 'note ok' : 'note' }, note),
+    hk && !readings.length ? h('p', { class: 'note' }, `No Hokkien reading on file for ${link.trad}. Try Mandarin, or the same-character rule.`) : null);
 
-  const firsts = firstChoices(link, mode);
+  // In Hokkien mode, each candidate carries the reading that matches the link's sound.
+  const sound = hk ? taiBase(link.hk) : undefined;
+  const firsts = firstChoices(link, mode, SOUNDS[dialect()], sound)
+    .map(c => (hk ? { ...c, hk: hokkien(c).find(r => taiBase(r) === sound) ?? hkOf(c) } : c));
   for (const s of state.picked) if (!firsts.some(f => f.simp === s)) state.picked.delete(s);
   $('#firsts').replaceChildren(...firsts.map(c => {
     const b = h('button', { type: 'button', class: 'chip', 'aria-pressed': String(state.picked.has(c.simp)) },
       h('span', { lang: 'zh-Hans', class: 'simp' }, c.simp), c.simp !== c.trad ? h('span', { lang: 'zh-Hant', class: 'trad' }, c.trad) : null,
-      h('small', {}, ` ${c.py}${c.meaning ? ' · ' + c.meaning : ''}`));
+      h('small', {}, ` ${hk ? `${c.hk} (${indo(c.hk)})` : c.py}${c.meaning ? ' · ' + c.meaning : ''}`));
     b.onclick = () => { state.picked.has(c.simp) ? state.picked.delete(c.simp) : state.picked.add(c.simp); update({ redetect: false }); };
     return b;
   }));

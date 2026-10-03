@@ -27,6 +27,11 @@
     <label class="f"><span>Surname</span><input name="surname" placeholder="李" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
     <label class="f"><span>Grandparent</span><input name="father" placeholder="建國" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
     <label class="f"><span>Parent</span><input name="you" placeholder="志明" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
+    <fieldset class="wide dialect">
+      <legend>Match sounds in</legend>
+      <label><input type="radio" name="dialect" value="mandarin" checked> Mandarin</label>
+      <label><input type="radio" name="dialect" value="hokkien"> Hokkien <span lang="zh-Hant">閩南語</span></label>
+    </fieldset>
     <p class="hint">Given names only; grandparent is optional. Type characters in either script, or pinyin like <b>wei shuo</b> and tap the match.</p>
     <div id="picker" class="picker wide" aria-live="polite" hidden></div>
     <label id="readingWrap" class="f wide" hidden><span>Reading of <span id="readingChar"></span></span><select name="reading"></select></label>
@@ -53,7 +58,7 @@
   <section id="results"></section>
   <button type="button" id="more" hidden>Show more</button>
 
-  <footer>Uses common name characters only. Names are scored on how the tones sound together, not on meaning or tradition, so check with family elders before choosing. Nothing you type leaves your browser.</footer>
+  <footer>Uses common name characters only. Names are scored on how the tones sound together, not on meaning or tradition, so check with family elders before choosing. Nothing you type leaves your browser. Hokkien readings: <a href="https://chhoetaigi.github.io/">ChhoeTaigi</a> dictionaries via <a href="https://github.com/andreihar/taibun">taibun</a>, CC BY-SA 4.0. Indonesian spellings are approximate.</footer>
 </main>
 <script src="vendor/pinyin-pro.js"></script>
 <script src="vendor/opencc.js"></script>

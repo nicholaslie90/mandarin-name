@@ -176,6 +176,7 @@ export const CHARS = `
 诗|詩|shī|poetry
 时|時|shí|time, timely
 实|實|shí|honest, solid
+识|識|shí|knowledge, insight
 士|士|shì|scholar
 世|世|shì|generation, world
 仕|仕|shì|to serve
@@ -225,6 +226,9 @@ export const CHARS = `
 武|武|wǔ|martial
 悟|悟|wù|to awaken, realize
 希|希|xī|hope
+息|息|xī|to flourish (生生不息)
+惜|惜|xī|to cherish
+锡|錫|xī|to bestow
 溪|溪|xī|brook
 熙|熙|xī|bright, prosperous
 曦|曦|xī|morning sunlight

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { pinyin } from 'pinyin-pro';
 import * as OpenCC from 'opencc-js';
 import { gb2312, buildIndex, syllables, firstSyllable, candidates, SURNAMES } from './public/pinyin.js';
-import { DB, splitTone, detectLink, firstChoices, flow, suggest, romanize } from './public/lineage.js';
+import { DB, splitTone, detectLink, firstChoices, flow, suggest, romanize, SOUNDS, hokkien, indo, romanizeHokkien } from './public/lineage.js';
 
 // Data integrity: unique, traditional form and reading agree with the libraries.
 const toTrad = OpenCC.Converter({ from: 'cn', to: 'tw' });
@@ -54,5 +54,15 @@ assert.ok(candidates(idx, { syl: 'wei', tone: 2 }).every(c => c.tone === 2));
 assert.equal(candidates(idx, { syl: 'li' }, SURNAMES)[0].ch, '李');
 assert.ok(candidates(idx, { syl: 'lv' }, SURNAMES).some(c => c.ch === '吕'));
 assert.ok(candidates(idx, { syl: 'shuo' }).map(c => c.ch).includes('硕'));
+
+// Hokkien mode: 緯 uī → 惟 uî is a sound chain; 碩 si̍k leads to other "sik" characters.
+const hk = SOUNDS.hokkien;
+assert.equal(detectLink(wei3, wei2, hk), 'sound');
+assert.equal(detectLink({ simp: '家', trad: '家', py: 'jiā' }, shuo, hk), null);
+assert.deepEqual(hokkien(shuo), ['sik', 'si̍k']);
+const sik = firstChoices(shuo, 'sound', hk, 'sik').map(c => c.trad);
+assert.ok(['碩', '識', '錫', '惜', '息'].every(c => sik.includes(c)) && !sik.includes('朔'));
+assert.deepEqual(['tsiā', 'lí', 'si̍k', 'uî', 'ka', 'sih', 'un', 'tshing', 'jī'].map(indo), ['Tjia', 'Lie', 'Sik', 'Oei', 'Ka', 'Sie', 'Oen', 'Tjing', 'Djie']);
+assert.deepEqual(romanizeHokkien(['lí', 'uî', 'si̍k'], 1), { tailo: 'Lí Uî-si̍k', indo: 'Lie Oei Sik' });
 
 console.log(`ok — ${DB.length} characters`);

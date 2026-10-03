@@ -65,7 +65,7 @@ button:hover { border-color: var(--muted); }
 #controls[hidden], [hidden] { display: none !important; }
 fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
 legend, .label { font-size: .9rem; color: var(--muted); margin: 0 0 6px; padding: 0; }
-fieldset label { display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 1rem; }
+fieldset label { white-space: nowrap; display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 1rem; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { display: inline-flex; align-items: baseline; gap: 4px; border-radius: 999px; padding: 6px 14px; }
 .chip span { font-size: 1.25rem; }
@@ -86,8 +86,13 @@ fieldset label { display: flex; align-items: center; gap: 6px; color: var(--ink)
 .row.trad .hz { color: var(--trad); }
 .hz .d { text-decoration: underline 2px; text-underline-offset: 5px; }
 .py { margin: 6px 0 0; font-weight: 600; }
+.hk { margin: 2px 0 0; font-weight: 600; color: var(--accent); font-size: .92rem; }
+.hk .indo { color: var(--ink); font-weight: 400; }
+footer a { color: inherit; }
 .mean { margin: 2px 0 0; color: var(--muted); font-size: .9rem; }
 .flow { margin: 6px 0 0; color: var(--accent); font-size: .85rem; letter-spacing: .1em; }
 .flow span { color: var(--muted); letter-spacing: 0; }
 #more { display: block; margin: 20px auto 0; }
 footer { margin-top: 48px; color: var(--muted); font-size: .85rem; max-width: 62ch; }
+.dialect { align-items: center; }
+.dialect legend { float: left; margin: 0 4px 0 0; }
