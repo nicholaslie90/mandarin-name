@@ -27,7 +27,8 @@
     <label class="f"><span>Surname</span><input name="surname" placeholder="李" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
     <label class="f"><span>Grandparent</span><input name="father" placeholder="建國" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
     <label class="f"><span>Parent</span><input name="you" placeholder="志明" lang="zh" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
-    <p class="hint">Given names only; grandparent is optional. Simplified or Traditional both work.</p>
+    <p class="hint">Given names only; grandparent is optional. Type characters in either script, or pinyin like <b>wei shuo</b> and tap the match.</p>
+    <div id="picker" class="picker wide" aria-live="polite" hidden></div>
     <label id="readingWrap" class="f wide" hidden><span>Reading of <span id="readingChar"></span></span><select name="reading"></select></label>
   </form>
 

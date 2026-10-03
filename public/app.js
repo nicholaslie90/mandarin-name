@@ -1,4 +1,5 @@
-import { BY_SIMP, withTone, detectLink, firstChoices, suggest, romanize } from './lineage.js';
+import { PENDING, gb2312, buildIndex, firstSyllable, candidates, SURNAMES } from './pinyin.js';
+import { DB, BY_SIMP, withTone, detectLink, firstChoices, suggest, romanize } from './lineage.js';
 
 const { pinyin } = window.pinyinPro;
 const toSimp = OpenCC.Converter({ from: 'tw', to: 'cn' });
@@ -118,8 +119,38 @@ function render(surnameLen) {
   $('#more').hidden = shown >= results.length;
 }
 
+// Pinyin fallback: Latin letters in a name box show characters to tap, like a phone IME.
+const NAME_CHARS = DB.map(c => c.simp);
+let idx, active;
+function picker() {
+  const box = $('#picker');
+  const m = active && PENDING.exec(active.value);
+  box.hidden = !m;
+  if (!m) return;
+  idx ??= buildIndex([...SURNAMES, ...NAME_CHARS, ...gb2312()], ch => pinyin(ch, { multiple: true, type: 'array' }));
+  const syl = firstSyllable(m[0], idx);
+  if (!syl) return box.replaceChildren(h('p', { class: 'hint' }, `"${m[0]}" isn't pinyin yet. Keep typing.`));
+  const list = candidates(idx, syl, active.name === 'surname' ? SURNAMES : NAME_CHARS);
+  box.replaceChildren(
+    h('p', { class: 'hint' }, `Tap a character for "${syl.syl}${syl.tone ?? ''}". Add a tone number to narrow the list, e.g. wei2.`),
+    h('div', { class: 'chips' }, list.map(c => {
+      const trad = BY_SIMP.get(c.ch)?.trad ?? toTrad(c.ch);
+      const b = h('button', { type: 'button', class: 'chip' },
+        h('span', { lang: 'zh-Hans', class: 'simp' }, c.ch), trad !== c.ch ? h('span', { lang: 'zh-Hant', class: 'trad' }, trad) : null,
+        h('small', {}, ` ${c.py}`));
+      b.onclick = () => {
+        const v = active.value;
+        active.value = v.slice(0, m.index) + c.ch + v.slice(m.index + syl.len).replace(/^[\s']+/, '');
+        active.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      return b;
+    })));
+}
+form.addEventListener('focusin', e => { if (e.target.matches('.f input')) { active = e.target; picker(); } });
+
 form.addEventListener('input', e => {
   if (e.target.name === 'reading') return update({ redetect: false });
+  if (e.target.matches('.f input')) { active = e.target; picker(); }
   state.shown = PAGE; state.picked.clear(); update();
 });
 form.addEventListener('submit', e => e.preventDefault());

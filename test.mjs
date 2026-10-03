@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { pinyin } from 'pinyin-pro';
 import * as OpenCC from 'opencc-js';
+import { gb2312, buildIndex, syllables, firstSyllable, candidates, SURNAMES } from './public/pinyin.js';
 import { DB, splitTone, detectLink, firstChoices, flow, suggest, romanize } from './public/lineage.js';
 
 // Data integrity: unique, traditional form and reading agree with the libraries.
@@ -36,4 +37,22 @@ assert.ok(res.length > 0 && res.every(r => r.chars[2].base !== 'shuo' && !['纬'
 assert.ok(res.every((r, i) => !i || res[i - 1].score >= r.score));
 
 assert.equal(romanize(['lǐ', 'shuò', 'ān'], 1), "Lǐ Shuò'ān");
+// Pinyin fallback
+const all = gb2312();
+assert.equal(all.length, 6763);
+const idx = buildIndex([...DB.map(c => c.simp), ...all], ch => pinyin(ch, { multiple: true, type: 'array' }));
+assert.deepEqual(syllables('weishuo', idx), ['wei', 'shuo']);
+assert.deepEqual(syllables('xian', idx), ['xian']);
+assert.equal(syllables('xq', idx), null);
+assert.deepEqual(firstSyllable('weishuo', idx), { syl: 'wei', tone: undefined, len: 3 });
+assert.deepEqual(firstSyllable('Wei2', idx), { syl: 'wei', tone: 2, len: 4 });
+assert.deepEqual(firstSyllable('weish', idx), { syl: 'wei', len: 3 }); // still typing
+assert.equal(firstSyllable('x', idx), null);
+const wei = candidates(idx, { syl: 'wei' }).map(c => c.ch);
+assert.ok(['纬', '惟', '伟'].every(c => wei.includes(c)) && new Set(wei).size === wei.length);
+assert.ok(candidates(idx, { syl: 'wei', tone: 2 }).every(c => c.tone === 2));
+assert.equal(candidates(idx, { syl: 'li' }, SURNAMES)[0].ch, '李');
+assert.ok(candidates(idx, { syl: 'lv' }, SURNAMES).some(c => c.ch === '吕'));
+assert.ok(candidates(idx, { syl: 'shuo' }).map(c => c.ch).includes('硕'));
+
 console.log(`ok — ${DB.length} characters`);
